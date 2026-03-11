@@ -145,7 +145,7 @@ while True:
     # enforce a network/read timeout for page fetch and parsing
     ## TODO: I don't think this timeout works, we need to fix it
     links_to_scrape = scraper.store(url, timeout=TIMEOUT_TIME)
-    print(links_to_scrape)
+    #print(links_to_scrape)
 
 
     ## TODO: Right now if a page isn't in English we still store the links in that page (they probably are unlikely to also be in Egnlish) so we need to talk abaout whether we still want to queue those links
