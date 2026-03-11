@@ -5,7 +5,7 @@ metadata:
   labels:
     app: test-stultus
 spec:
-  replicas: 5
+  replicas: 6
   selector:
     matchLabels:
       app: test-stultus

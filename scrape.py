@@ -10,7 +10,7 @@ import redis
 from typing import List, Tuple
 
 TIMEOUT_TIME = 10  # seconds to wait for fetching a page before skipping
-LOCAL_QUEUE_LENGTH = 30 # number of URLs to hold locally for scraping
+LOCAL_QUEUE_LENGTH = 60 # number of URLs to hold locally for scraping
 
 scraper.create_database()
 
@@ -18,12 +18,13 @@ total_scraped = 0
 
 # This is legacy from running on a single machine, we can probably delete this now that we have a shared queue
 # Seed URLs into DB-backed queue (skip those already in DB)
+"""
 with open("seed_urls.csv", "r") as f:
     for line in f:
         url = line.strip()
         if url and not scraper.exists(url, 'url'):
             scraper.enqueue_url(url)
-
+"""
 
 scraper.log("Started scraping")
 
@@ -64,18 +65,19 @@ prev_base_domain = ""
 page_not_in_english = False
 
 while True:
-    #print(1, float("{:.3f}".format(time.time()-timed)))
-    timed = time.time()
     
-
     # Iterates through the queue until it finds a domain which hasn't been scraped in the last 10 seconds (with the redis db)
     # Holds a local queue of 30 urls so it doesn't need to interact with the db as much
 
     if len(local_queue) == 0:
         scraper.info_print("Reloading local queue")
+        #print("Returning to queue:", queue_return_to_db)
         scraper.enqueue_urls(queue_return_to_db)
+        #print("Enqueued")
         local_queue = scraper.get_next_urls(LOCAL_QUEUE_LENGTH)
-
+        #print("Adding to lcal queue:")
+        #print(local_queue)
+        #print(local_queue)
 
     for i in local_queue:
         #print(i, len(local_queue))
@@ -83,11 +85,13 @@ while True:
         base_domain = urlparse(i).hostname
         #print(f"Domain {base_domain}, Previous Domain {prev_base_domain}")
         url = ""
+        #print(1)
 
         if base_domain != prev_base_domain:
             # Case 1: base domain of the current url is NOT the same as the one scraped in the previous iteration
 
             next_url_is_free = scraper.domain_free_for_scraping(base_domain, redis_client)
+            #print(2)
 
             if next_url_is_free:
                 #print(f"Not in redis: {base_domain}")
@@ -96,16 +100,21 @@ while True:
                 #print("Scraping", url)
                 prev_base_domain = base_domain
                 local_queue.remove(i)  # Need to remove link because we break the loop so it starts at the same url when it restarts the loop
+                #print(3)
                 break
                 
             else:
                 local_queue.remove(i)
+                #print("Adding to return_to_queue", i)
                 queue_return_to_db.append(i)
+                #print(4)
 
             prev_base_domain = base_domain
         else:
             # Case 2: Base domain is the same as the previous base domain
             local_queue.remove(i)
+            #print("Adding to return_to_queue", i)
+
             queue_return_to_db.append(i)
         
     """
@@ -122,77 +131,64 @@ while True:
     """
     if url == "": continue  # If the local_queue is 0 and the loop above ends but the url isn't valid (not in redis and not prev_base_domain) the invalid url will be use for the scraping code below, thus we only assign url a value if it passes all checks
 
-
-    #print(2, float("{:.3f}".format(time.time()-timed)))
-    timed = time.time()
-
     scraper.log(f"Starting scraping {url}")
     scraper.debug_print("")
     big_start = time.time()
 
-    #print(3, float("{:.3f}".format(time.time()-timed)))
-    timed = time.time()
 
     """
     if scraper.exists(url, 'url'):
         continue
     """
     
-    #print(4, float("{:.3f}".format(time.time()-timed)))
+    #try: # I took this try statement out, see note at the `except` ending
+    # enforce a network/read timeout for page fetch and parsing
+    ## TODO: I don't think this timeout works, we need to fix it
+    links_to_scrape = scraper.store(url, timeout=TIMEOUT_TIME)
+    print(links_to_scrape)
+
+
+    ## TODO: Right now if a page isn't in English we still store the links in that page (they probably are unlikely to also be in Egnlish) so we need to talk abaout whether we still want to queue those links
+    if len(links_to_scrape) > 1:
+        # links_to_scrape is a list of two [links, False] if the page wasn't in English, we set the variable back to the links and make a flag saying that the page wasn't in English, usung that flag in the final print at the end of the loop
+        links_to_scrape = links_to_scrape[0]
+        page_not_in_english = True
+
+    total_links=0
+
+    links_to_add_to_queue = []
+    # Clean, deduplicate and filter links in bulk for performance
+    raw_links = [i for i in links_to_scrape if "mailto:" not in i]
+
+    seen = set()
+    cleaned = []
+
+    for link in raw_links:
+        #print(link)
+        # Get rid of ?post=data
+        total_links += 1
+        clean_link = link.split('?', 1)[0]
+        if clean_link not in seen:
+            seen.add(clean_link)
+            cleaned.append(clean_link)
+
+    # filter_new_urls checks both the queue and stored urls in one go
+    links_to_add_to_queue = scraper.filter_new_urls(cleaned)
+
+    #print("Adding:", links_to_add_to_queue)
+    scraper.enqueue_urls(links_to_add_to_queue)
+
+    scraper.log(f"Scraped {url}")
+    total_scraped += 1
     timed = time.time()
 
-    try:
-        # enforce a network/read timeout for page fetch and parsing
-        ## TODO: I don't think this timeout works, we need to fix it
-        links_to_scrape = scraper.store(url, timeout=TIMEOUT_TIME)
-
-        ## TODO: Right now if a page isn't in English we still store the links in that page (they probably are unlikely to also be in Egnlish) so we need to talk abaout whether we still want to queue those links
-        if len(links_to_scrape) > 1:
-            # links_to_scrape is a list of two [links, False] if the page wasn't in English, we set the variable back to the links and make a flag saying that the page wasn't in English, usung that flag in the final print at the end of the loop
-            links_to_scrape = links_to_scrape[0]
-            page_not_in_english = True
-
-        #print(5, float("{:.3f}".format(time.time()-timed)))
-        timed = time.time()
-        total_links=0
-
-        links_to_add_to_queue = []
-        # Clean, deduplicate and filter links in bulk for performance
-        raw_links = [i for i in links_to_scrape if "mailto:" not in i]
-
-        seen = set()
-        cleaned = []
-
-        for link in raw_links:
-            # Get rid of ?post=data
-            total_links += 1
-            clean_link = link.split('?', 1)[0]
-            if clean_link not in seen:
-                seen.add(clean_link)
-                cleaned.append(clean_link)
-
-        # filter_new_urls checks both the queue and stored urls in one go
-        links_to_add_to_queue = scraper.filter_new_urls(cleaned)
-
-        scraper.enqueue_urls(links_to_add_to_queue)
-
-        #print(6, "links:", total_links, float("{:.3f}".format(time.time()-timed)))
-        timed = time.time()
-
-
-        scraper.log(f"Scraped {url}")
-        total_scraped += 1
-        #print(7, float("{:.3f}".format(time.time()-timed)))
-        timed = time.time()
-
-    except Exception as e:
-        scraper.log(f"Error scraping {url}: {e}")
+    # With this in, I can't find errors so I'm taking out the try: phrase. This will mean that scrapers can crash and stop scraping, but we can set up K3 to restart them and report the errors
+    #except Exception as e:
+    #    scraper.log(f"Error scraping {url}: {e}")
+    #    scraper.failure_print(e)
 
     # Add url to the cooldown redis db
     scraper.mark_domain(base_domain, redis_client)
-
-    #print(8, float("{:.3f}".format(time.time()-timed)))
-    timed = time.time()
 
 
     #if total_scraped % 10 == 0:

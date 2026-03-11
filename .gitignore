@@ -1,7 +1,13 @@
 venv/
+env/
+*/venv/
+*/env/
+.env/
+.venv/
 *.pyc*
 *.db
 *.pyc
 */__pycache__/
 scraper.log
 timing.csv
+*.swp

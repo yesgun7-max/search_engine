@@ -207,7 +207,10 @@ def info_print(text):
 def failure_print(text):
     # For when things fail to the point of breaking and don't need timing, just debug logs
 
-    print(text)
+    if "DEBUG" in os.environ:
+        print('\033[30;41m ' + "Fatal: " + str(text) + ' \033[0m')
+    else:
+        print(text)
 
 def get_conn():
     """Return a new psycopg2 connection using `DATABASE_URL` or PG_* env vars."""
@@ -248,7 +251,7 @@ def create_database():
         id INT NOT NULL DEFAULT nextval('prefixes_id_seq')
     );
     CREATE TABLE IF NOT EXISTS urls (
-        url VARCHAR(2048) NOT NULL,
+        url VARCHAR(2048) NOT NULL UNIQUE,
         id INT NOT NULL DEFAULT nextval('urls_id_seq') PRIMARY KEY
     );
     CREATE TABLE IF NOT EXISTS urls_references (
@@ -267,6 +270,21 @@ def create_database():
         url VARCHAR(2048) NOT NULL PRIMARY KEY,
         entity_url INT NOT NULL
     );
+                
+
+    CREATE TABLE IF NOT EXISTS url_queue (
+        id SERIAL PRIMARY KEY,
+        url VARCHAR(2048) UNIQUE NOT NULL,
+        enqueued_at TIMESTAMP DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS logs (
+        id SERIAL PRIMARY KEY,
+        ts TIMESTAMP DEFAULT now(),
+        ip VARCHAR(64),
+        message TEXT
+    );
+
 
 
     CREATE TABLE IF NOT EXISTS bigram_urls (bigram_id INT NOT NULL, url_id INT NOT NULL);
@@ -277,8 +295,6 @@ def create_database():
     CREATE TABLE IF NOT EXISTS weights (type TEXT PRIMARY KEY, weight FLOAT NOT NULL);
     """)
 
-    # create queue and logs tables as well
-    _extend_create_database_tables(cur)
 
     conn.commit()
     cur.close()
@@ -533,6 +549,10 @@ def store(url, timeout=None):
         info_print("URL stores a file format we can't scrape")
         return
     
+    # Making sure there is text at all. I chose 4 arbitrarily
+    if len(text) < 4:
+        return [links, False]
+    
     # Check for english language
     if detect(text) != 'en':
         # TODO: Add something here to the logs logging which pages are in what language so we can measure how much of the web is in what language
@@ -548,6 +568,7 @@ def store(url, timeout=None):
 
     debug_print("Tokenized")
 
+    ##TODO: This can probably be deleted because I added a statement checking if text is longer that 5 characters beofre echking the language
     if not text:
         log(f"Error Failed to retrieve page text {url}")
         failure_print("Error Failed to retrieve page text")
@@ -582,7 +603,7 @@ def store(url, timeout=None):
     conn = get_conn()
     cur = conn.cursor()
 
-    print(cur)
+    #print(cur)
 
     #debug_print("Getting SQL connection and cursor:")
 
@@ -594,6 +615,8 @@ def store(url, timeout=None):
     else:
         cur.execute("SELECT id FROM urls WHERE url = %s;", (url,))
         url_id = cur.fetchone()[0]
+    
+    #print("Ececuted into db fine")
 
     # Bulk insert words/bigrams/trigrams/prefixes using execute_values for speed.
     if words:
@@ -740,6 +763,7 @@ def queue_size():
     return count
 
 def get_next_urls(num_urls):
+    #print("HT=================")
     # Returns a list of the next urls in the queue, deletes them from the db queue
 
     conn = get_conn()
@@ -761,6 +785,8 @@ def get_next_urls(num_urls):
     conn.commit()
     cur.close()
     conn.close()
+
+    #print("URLS", urls)
 
     return urls
 
@@ -934,24 +960,6 @@ def delete_from_queue(url):
     cur.close()
     conn.close()
     return deleted
-
-# Ensure queue and logs tables are created when creating DB
-def _extend_create_database_tables(cur):
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS url_queue (
-        id SERIAL PRIMARY KEY,
-        url VARCHAR(2048) UNIQUE NOT NULL,
-        enqueued_at TIMESTAMP DEFAULT now()
-    );
-
-    CREATE TABLE IF NOT EXISTS logs (
-        id SERIAL PRIMARY KEY,
-        ts TIMESTAMP DEFAULT now(),
-        ip VARCHAR(64),
-        message TEXT
-    );
-    """)
-
 
 # ------------ Redis functions
 
