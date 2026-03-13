@@ -253,6 +253,7 @@ def create_database():
     CREATE TABLE IF NOT EXISTS urls (
         url VARCHAR(2048) NOT NULL UNIQUE,
         id INT NOT NULL DEFAULT nextval('urls_id_seq') PRIMARY KEY
+        reference_count INT NOT NULL DEFAULT 1
     );
     CREATE TABLE IF NOT EXISTS urls_references (
         url VARCHAR(2048) NOT NULL PRIMARY KEY,
