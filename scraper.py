@@ -460,13 +460,21 @@ def get_main_text(url, timeout=None):
 
         content_type = r.headers.get("Content-Type", "").lower()
 
+        """
+        # We want to do pdf in the fiture, for now we don't scrape pdfs
+
         # Check for text and pdf only
         if not content_type.startswith("text/") and not content_type == "application/pdf":
             log(f"Error Invalid data type {url}")
             return False
-        
 
-        # Check for concerning http error codes
+        """
+        # Check for text only
+        if not content_type.startswith("text/"):
+            log(f"Error Invalid data type {url}")
+            return False
+
+        # TODO: Add check for concerning http error codes
 
         content = r.content
             
