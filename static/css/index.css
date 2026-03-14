@@ -12,6 +12,10 @@
 
 html {
   background-color: var(--bg);
+  min-height: 100vh;
+  /* pad center items on phone screens */
+  padding-left: 15px;
+  padding-right: 15px; 
 }
 
 body {
