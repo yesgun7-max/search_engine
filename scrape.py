@@ -187,9 +187,16 @@ while True:
     #print("CLEANED", cleaned)
     
     # Batch add url references after cleaning
-    if cleaned and len(cleaned) > 0:
+    if cleaned and len(cleaned) > 1 and len(cleaned[0]) == 0:
+        print(len(cleaned))
         current_domain = scraper.get_base_domain(url)
-        external_links = [link for link in cleaned if scraper.get_base_domain(link) != current_domain]
+
+        if len(cleaned) > 1:
+            external_links = [link for link in cleaned if scraper.get_base_domain(link) != current_domain]
+        elif scraper.get_base_domain(cleaned[0]) != current_domain:
+            external_links = cleaned[0]
+
+        print(external_links)
 
         if external_links:
             conn = scraper.get_conn()

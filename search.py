@@ -1,6 +1,6 @@
-# Search Engine:
+# Searching function
 
-
+"""
 #Aaron's attribute normalization functions
 '''
 prefix_score = ceil(len(prefix_matches)/3)
@@ -16,18 +16,24 @@ where word_score = len(word)/2
 # popularity = reference_count
 # search_output = relevance * popularity
 
-
-
-
-#Original Time Taken b4 Aaron:
-#   0.22978639602661133 sec
-#AFTER
-#   0.058481693267822266
+"""
 
 import tokenizer
 import scraper
 import time
 import math
+import os
+
+DEBUG = "DEBUG" in os.environ
+
+def debug_print(text, text1=""):
+    # Just prints when DEBUG is passed
+
+    global DEBUG
+
+    if DEBUG:
+        print(text, text1)
+
 
 
 def search(query):
@@ -146,22 +152,22 @@ def search(query):
         prefixes or [''],
     )
 
-    print("Searching....", query)
+    debug_print("Searching....", query)
     start = time.time()
-    print("")
-    print("words:", words)
-    print("bigrams:", bigrams)
-    print("trigrams:", trigrams)
-    print("prefixes:", prefixes)
-    #print("params:", params)
-    print("param count:", len(params))
+    debug_print(" ")
+    debug_print("words:", words)
+    debug_print("bigrams:", bigrams)
+    debug_print("trigrams:", trigrams)
+    debug_print("prefixes:", prefixes)
+    debug_print("params:", params)
+    debug_print("param count:", len(params))
     cur.execute(sql_query, params)
-    print("")
-    print("Time taken:", time.time() - start)
+    debug_print(" ")
+    debug_print("Time taken:", time.time() - start)
     results = cur.fetchall()
 
     for url, score, relevance, ref_score, ref_count in results:
-            print(f"{url}  |  score: {score}  |  relevance: {relevance}  |  ref_score: {ref_score} | reference_count: {ref_count}")
+            debug_print(f"{url}  |  score: {score}  |  relevance: {relevance}  |  ref_score: {ref_score} | reference_count: {ref_count}")
 
     cur.close()
     conn.close()
@@ -169,5 +175,5 @@ def search(query):
 
 # Example usage:
 # query = input("Search query: ")
-query = "disney"
-search(query)
+#query = "disney"
+#search(query)
