@@ -10,7 +10,7 @@
 body {
   display: grid;
   gap: 15px;
-  margin: auto;
+  `argin: auto;
   margin-top: 15px;
 }
 
@@ -49,16 +49,6 @@ footer {
     order: -1;
     white-space: normal;
   }
-}
-
-.externalUrl:hover {
-  background-color: currentColor;
-}
-
-.externalUrl:hover {
-  background-color: aqua;
-  opacity: 50%;
-  color:#003366;
 }
 
 #search-input {
