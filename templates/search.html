@@ -3,11 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ search_query }} | Stultus</title>
+    <title>{{ query_string }} | Stultus</title>
+    <link rel="stylesheet" href="/static/css/index.css">
+    <link rel="stylesheet" href="/static/css/search-results.css">
 </head>
-<body>
-
-    
-    
-</body>
+    <body>
+        <div id="search-header">
+            <h1 id="main-title">Stultus</h1>
+            <form action="#">
+                <input id="search-input" type="search" placeholder=" Search..." autofocus>
+                <input id="submit-btn" type="submit" value="🔍">
+            </form>
+        </div>
+        <div id="search-results">
+            
+        </div>
+    </body>
+    <footer id="motto-footer">Website made by hand with love. ♡</footer>
 </html>
