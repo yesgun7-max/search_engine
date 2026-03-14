@@ -1,3 +1,19 @@
+/* index.css breaks this page if linked  so this is a temp fix */
+:root {
+  --bg: #1a1e1c;
+  --fg: #333a35;
+  --border: #434945;
+  --text: #ccd3cf;
+  --link: #518f97;
+  --link-hover: #69b7c2;
+  --debug-text: #949895;
+}
+
+* {
+  font-family: "Forum", serif;
+  font-weight: 400;
+}
+
 body {
     width: 100%;
     margin: 0;
