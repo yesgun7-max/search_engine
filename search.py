@@ -165,9 +165,9 @@ def search(query):
 
     cur.close()
     conn.close()
-
+    return results
 
 # Example usage:
 # query = input("Search query: ")
-query = "jack"
+query = "disney"
 search(query)
