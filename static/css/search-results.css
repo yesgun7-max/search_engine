@@ -1,3 +1,12 @@
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
+
 body {
   display: grid;
   gap: 15px;
@@ -37,7 +46,7 @@ h1 {
   border: 3px solid var(--border);
   border-radius: 15px;
   min-height: 400px;
-  overflow: scroll;
+  overflow:auto;
   background-color: var(--fg);
 }
 

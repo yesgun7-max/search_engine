@@ -114,6 +114,7 @@ def search(query):
         scored AS(
             SELECT
                 u.url,
+                u.title,
                 (
                     (
                         prefix_score +
@@ -136,6 +137,7 @@ def search(query):
 
         SELECT
             url,
+            title,
             relevance * ref_score AS search_output,
             relevance,
             ref_score,
@@ -166,8 +168,8 @@ def search(query):
     debug_print("Time taken:", time.time() - start)
     results = cur.fetchall()
 
-    for url, score, relevance, ref_score, ref_count in results:
-            debug_print(f"{url}  |  score: {score}  |  relevance: {relevance}  |  ref_score: {ref_score} | reference_count: {ref_count}")
+    for url, title, score, relevance, ref_score, ref_count in results:
+            debug_print(f"{url}  | title: {title} |  score: {score}  |  relevance: {relevance}  |  ref_score: {ref_score} | reference_count: {ref_count}")
 
     cur.close()
     conn.close()

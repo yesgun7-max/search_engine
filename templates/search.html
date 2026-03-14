@@ -16,11 +16,11 @@
             </form>
         </div>
         <div id="results-container">
-            {% for url, score, relevance, ref_score, reference_count in search_results %}
+            {% for url, title, score, relevance, ref_score, reference_count in search_results %}
                 <div class="result">
                     <div class="text-buffer" style="margin:15px">
                         <div>
-                            <h3>Website Title</h3>
+                            <h3>{{title}}</h3>
                             <a href="{{ url }}">{{ url }}</a>
                         </div>
                         <div>
