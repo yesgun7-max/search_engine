@@ -252,6 +252,8 @@ def create_database():
     );
     CREATE TABLE IF NOT EXISTS urls (
         url VARCHAR(2048) NOT NULL UNIQUE,
+        icon_url VARCHAR(2048),
+        title VARCHAR(128),
         id INT NOT NULL DEFAULT nextval('urls_id_seq') PRIMARY KEY,
         reference_count INT NOT NULL DEFAULT 1
     );
@@ -374,7 +376,28 @@ def tag_visible(element):
 def text_from_html(body, url):
     # Use lxml parser for speed
     soup = BeautifulSoup(body, "lxml")
+    title = soup.find('title')
 
+    if title == None:
+        title = url
+        print("Found none title")
+    else:
+        title = title.string
+        print("Foound title:,", title)
+
+    icon_link = (
+        soup.find('link', rel='shortcut icon') or
+        soup.find('link', rel='icon') or
+        soup.find('link', rel=lambda x: x and x.lower() == 'icon') or
+        soup.find('link', rel=lambda x: x and 'icon' in x.lower())
+    )
+
+    if icon_link:
+        href = icon_link.get('href')
+        if href:
+            # Convert to absolute URL
+            icon_link = urljoin(url, href)
+        
     # Remove tags that are not relevant for visible text
     for tag in soup(["script", "style", "head", "meta", "noscript"]):
         tag.decompose()
@@ -399,7 +422,7 @@ def text_from_html(body, url):
     # Join all text fragments into one string
     combined_text = " ".join(texts)
 
-    return combined_text, links
+    return combined_text, links, title, icon_link
 
 def allowed_by_robots(url, user_agent):
         
@@ -441,13 +464,16 @@ def get_main_text(url, timeout=None):
     if not allowed_by_robots(url, USER_AGENT):
         log(f"Blocked by robots.txt {url}")
         info_print("Not allowed by robots.txt")
-        return "", []
+        #Changed this from: return "", [], []
+        #return False, [], []
+        return False
 
     headers = {
         "User-Agent": USER_AGENT,
-        "From": "hagenjj4111@uwec.edu"
+        "From": "crawler@stultus.rip"
     }
 
+    ##TODO: I don't think this (timeout) works
     signal.signal(signal.SIGALRM, handler)
     signal.alarm(timeout)
 
@@ -479,7 +505,7 @@ def get_main_text(url, timeout=None):
         return False
     except requests.exceptions.RequestException as e:
         log(f"Error HTTP error fetching: {url} : {e}")
-        return "", []
+        return False
     finally:
         #print(5)
         signal.alarm(0)
@@ -551,10 +577,15 @@ def store(url, timeout=None):
 
     debug_print("Visited site, got main text and links")
 
+    print(content)
+
+
     if content != False:
         # The url contains real text to scrape
         text = content[0]
         links = content[1]
+        title = content[2]
+        icon_link = content[3]
         #print("raw_links", links)
     else:
         # Url is a file format which cannot be scraped
@@ -633,7 +664,7 @@ def store(url, timeout=None):
     #debug_print("Getting SQL connection and cursor:")
 
     # Upsert the URL and get its id. Use RETURNING id when inserting; else SELECT.
-    cur.execute("INSERT INTO urls (url) VALUES (%s) ON CONFLICT (url) DO NOTHING RETURNING id;", (url,))
+    cur.execute("INSERT INTO urls (url, title, icon_link) VALUES (%s, %s, %s) ON CONFLICT (url) DO NOTHING RETURNING id;", (url, title, icon_link))
     row = cur.fetchone()
     if row:
         url_id = row[0]
