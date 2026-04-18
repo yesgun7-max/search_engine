@@ -6,6 +6,10 @@ Stultus is a full search engine system made by UWEC students with hand-built int
 
 And to build something cool. 🔥
 
+## No AI
+
+We are students, the goal of this project is to learn. To that end, we don't use AI to code. We can use AI to come up with ideas, to guide how we design our code, but we don't use AI to vibe code.
+
 ## Indexes to index
 
 - Kagi list of small blogs (these are rss files, need to parse those) - https://github.com/kagisearch/smallweb/blob/main/smallweb.txt
